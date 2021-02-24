@@ -1,180 +1,163 @@
-# react-progress-button
+# React Images Uploader
 
-[![build status](https://img.shields.io/travis/mathieudutour/react-progress-button/master.svg?style=flat-square)](https://travis-ci.org/mathieudutour/react-progress-button)
-[![npm version](https://img.shields.io/npm/v/react-progress-button.svg?style=flat-square)](https://www.npmjs.com/package/react-progress-button)
-[![Dependency Status](https://david-dm.org/mathieudutour/react-progress-button.svg)](https://david-dm.org/mathieudutour/react-progress-button)
-[![devDependency Status](https://david-dm.org/mathieudutour/react-progress-button/dev-status.svg)](https://david-dm.org/mathieudutour/react-progress-button#info=devDependencies)
+[![NPM](https://nodei.co/npm/react-images-uploader.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/react-images-uploader/)
 
-> Simple [React](http://facebook.github.io/react/index.html) component for a circular Progress Button.
+React.js component for uploading images to the server
 
-### [Demo](https://mathieudutour.github.io/react-progress-button)
+![Demo](https://cdn.rawgit.com/aleksei0807/react-images-uploader/master/examples/demo.gif "Demo")
 
-[![Demo](https://cdn.rawgit.com/mathieudutour/react-progress-button/master/example/demo.gif "Demo")](https://github.com/mathieudutour/react-progress-button/blob/master/example/index.html)
+## Examples
 
-## Install
-
-```bash
-npm install react-progress-button --save
-```
-
-## Example
-
-### Controlled usage:
+### Example for multiple images:
 
 ```javascript
-import ProgressButton from 'react-progress-button'
+import React, { Component } from 'react';
+import ImagesUploader from 'react-images-uploader';
+import 'react-images-uploader/styles.css';
+import 'react-images-uploader/font.css';
 
-const App = React.createClass({
-  getInitialState () {
-    return {
-      buttonState: ''
-    }
-  },
-
-  render () {
-    return (
-      <div>
-        <ProgressButton onClick={this.handleClick} state={this.state.buttonState}>
-          Go!
-        </ProgressButton>
-      </div>
-    )
-  },
-
-  handleClick () {
-    this.setState({buttonState: 'loading'})
-    // make asynchronous call
-    setTimeout(() => {
-      this.setState({buttonState: 'success'})
-    }, 3000)
-  }
-})
+export default class MyUploader extends Component {
+	render() {
+		return (
+			<ImagesUploader
+				url="http://localhost:9090/multiple"
+				optimisticPreviews
+				onLoadEnd={(err) => {
+					if (err) {
+						console.error(err);
+					}
+				}}
+				label="Upload multiple images"
+				/>
+		);
+	}
+}
 ```
 
-[Source](https://github.com/mathieudutour/react-progress-button/blob/master/example/index.html)
-
-### Using Promises:
-
-If the function passed in via the `onClick` prop return a Promise or if a promise
-is passed as an argument of the `loading` method,
-the component will automatically transition to its success or error
-states based on the outcome of the Promise without the need for
-external manipulation of state using a ref.
+### Example for one picture:
 
 ```javascript
-import ProgressButton from 'react-progress-button'
+import React, { Component } from 'react';
+import ImagesUploader from 'react-images-uploader';
+import 'react-images-uploader/styles.css';
+import 'react-images-uploader/font.css';
 
-const App = React.createClass({
-  render () {
-    return (
-      <div>
-        <ProgressButton onClick={this.handleClick}>
-          Go!
-        </ProgressButton>
-      </div>
-    )
-  },
+export default class MyUploader extends Component {
+	render() {
+		return (
+			<ImagesUploader
+				url="http://localhost:9090/notmultiple"
+				optimisticPreviews
+				multiple={false}
+				onLoadEnd={(err) => {
+					if (err) {
+						console.error(err);
+					}
+				}}
+				label="Upload a picture"
+				/>
+		);
+	}
+}
+```
 
-  handleClick() {
-    return new Promise(function(resolve, reject) {
-      setTimeout(resolve, 3000)
-    })
-  }
+### Example server (Node.js, Express)
+
+you need to install cors-prefetch-middleware and images-upload-middleware from npm.
+
+```javascript
+import express from 'express';
+import corsPrefetch from 'cors-prefetch-middleware';
+import imagesUpload from 'images-upload-middleware';
+
+const app = express();
+
+app.use('/static', express.static('./server/static'));
+
+app.use(corsPrefetch);
+
+app.post('/multiple', imagesUpload(
+	'./server/static/multipleFiles',
+	'http://localhost:9090/static/multipleFiles',
+	true
+));
+
+app.post('/notmultiple', imagesUpload(
+	'./server/static/files',
+	'http://localhost:9090/static/files'
+));
+
+app.listen(9090, () => {
+	console.log('Listen: 9090');
 });
 ```
 
-[Source](https://github.com/mathieudutour/react-progress-button/blob/master/example/index-promises.html)
+## Other servers
 
-## API
+- [Server on Go](https://github.com/aleksei0807/imagesServer)
+- [Server on Clojure](https://github.com/aleksei0807/clojure-images-server)
 
-### Props
+## Props
 
-All props are optional. All props other than that will be passed to the top element.
+- `url: string` - server url;
+- `classNamespace: string` - namespace for all classNames (`default: 'iu-'`);
+- `inputId: string` - id and name for hidden input type file. Used for htmlFor in label (`default: 'filesInput'`);
+- `label: string` - label text;
+- `images: Array` - an array of references to the already uploaded images;
+- `disabled: boolean`;
+- `onLoadStart: function()` - callback, which is called when the download starts;
+- `onLoadEnd: function(error: { message: string, ... }, response?: JSON)`
 
-##### controlled
+	Error messages:
+	- `invalid response type` - additional params: response, fileName (imagesUploader);
+	- `server error` - additional params: status (response status), fileName (imagesUploader);
+	- `exceeded the number` - if there is `max` property and files count > max;
+	- `file type error` - additional params: type (file type), fileName (imagesUploader);
 
-`true` if you control the button state (by providing `props.state` and `props.onClick`).`false` to let the button manage its state with Promises.  
-
-##### classNamespace
-
-Namespace for CSS classes, default is `pb-` i.e CSS classes are `pb-button`.
-
-##### durationError
-
-Duration (ms) before going back to normal state when an error occurs,
-default is 1200
-
-##### durationSuccess
-
-Duration (ms) before going back to normal state when an success occurs,
-default is 500
-
-##### onClick
-
-Function to call when the button is clicked; if it returns a Promise
-then the component will transition to the success/error state based on
-the outcome of the Promise
-
-##### onError
-
-Function to call when going back to the normal state after an error
-
-##### onSuccess
-
-Function to call when going back to the normal state after a success
-
-##### state
-
-State of the button if you do not want to use the functions. Can be `''`, `loading`, `success`, `error` or `disabled`.
-
-##### type
-
-Type of the button (can be 'submit' for example).
-
-##### form
-
-Id of the form to submit (useful if the button is not directly inside the form).
-
-##### shouldAllowClickOnLoading
-
-Whether click event should bubble when in loading state
-
-### Methods
-
-##### loading()
-
-Put the button in the loading state.
-
-##### disable()
-
-Put the button in the disabled state.
-
-##### notLoading(), enable()
-
-Put the button in the normal state.
-
-##### success([callback, dontGoBackToNormal])
-
-Put the button in the success state. Call the callback or the onSuccess prop when going back to the normal state.
-
-##### error([callback])
-
-Put the button in the error state. Call the callback or the onError prop when going back to the normal state.
-
-## Styles
-
-Look at [react-progress-button.css](https://github.com/mathieudutour/react-progress-button/blob/master/react-progress-button.css) for an idea on how to style this component.
-
-If you are using webpack, you'll need to have ```css-loader``` installed and include 
+- `deleteImage: function(key: number)` - callback which is called when the image has been deleted from the list;
+- `clickImage: function(key: number)` - callback which is called when the image preview is clicked;
+- `optimisticPreviews: boolean` - enables optimistic previews `default: false`;
+- `multiple: boolean` - allows to upload a bunch of images !`default: true`!;
+- `image: string` - this property works only when multiple: false! already loaded picture;
+- `notification: string` - this property works only with multiple: false! notification text;
+- `max: number` - the maximum number of pictures for a single upload;
+- `color: string` - color for text and svg `default: '#142434'`;
+- `disabledColor: string` - color for text and svg in disabled mode `default: '#bec3c7'`;
+- `borderColor: string` - border color `default: '#a9bac8'`;
+- `disabledBorderColor: string` - border color in disabled mode `default: '#bec3c7'`;
+- `notificationBgColor: string` - background color for notification `default: 'rgba(0, 0, 0, 0.3)'`;
+- `notificationColor: string` - text and svg color for notification `default: '#fafafa'`;
+- `deleteElement: string|element` - element for removing images;
+- `plusElement: string|element` - element for adding images;
 ```
- {
-   test: /\.css$/,
-   loader: "style!css"
- }
- ```
- 
- in your webpack config. In your jsx file you can then import the CSS with ```import "../node_modules/react-progress-button/react-progress-button.css";``` although the path depends on how deeply nested your jsx is. If you wish to theme it yourself, copy the CSS to a convenient location and point the import path at the copy, which is part of your repo, unlike the original in ```node_modules```. 
-
-## License
-
-  MIT
+classNames: {
+	container: string,
+	label: string,
+	deletePreview: string,
+	loadContainer: string,
+	dropzone: string,
+	pseudobutton: string,
+	pseudobuttonContent: string,
+	imgPreview: string,
+	fileInput: string,
+	emptyPreview: string,
+	filesInputContainer: string,
+	notification: string,
+}
+```
+```
+styles: {
+	container: Object,
+	label: Object,
+	deletePreview: Object,
+	loadContainer: Object,
+	dropzone: Object,
+	pseudobutton: Object,
+	pseudobuttonContent: Object,
+	imgPreview: Object,
+	fileInput: Object,
+	emptyPreview: Object,
+	filesInputContainer: Object,
+	notification: Object,
+}
+```
